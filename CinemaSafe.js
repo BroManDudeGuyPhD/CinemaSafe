@@ -1,10 +1,25 @@
 const puppeteer = require('puppeteer-extra')
 const StealthPlugin = require('puppeteer-extra-plugin-stealth')
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker')
-const cheerio = require("cheerio");
+var http = require('http');
+const https = require('https');
+var fs = require('fs');
+const { moveCursor } = require('readline');
+const axios = require('axios');
+const Jimp = require("jimp"); 
+colors = require('colors');
+const clear = require('clear');
+const figlet = require('figlet');
+const punycode = require('punycode'); 
+
+require('console-png').attachTo(console);
+colors.enable()
+
+
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 
+console.clear(); 
 console.log('===================================================================================');
 console.log(' ██████╗██╗███╗   ██╗███████╗███╗   ███╗ █████╗ ███████╗ █████╗ ███████╗███████╗');
 console.log('██╔════╝██║████╗  ██║██╔════╝████╗ ████║██╔══██╗██╔════╝██╔══██╗██╔════╝██╔════╝');
@@ -14,6 +29,11 @@ console.log('╚██████╗██║██║ ╚████║██
 console.log(' ╚═════╝╚═╝╚═╝  ╚═══╝╚══════╝╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝');
 console.log('====================================================================================');
 
+console.log(
+
+		figlet.textSync('CINEMA-SAFE', { horizontalLayout: 'full' }).cyan
+);
+
 const movieInfo = async (startSeat, endSeat, url) => {
 	//Seat Logic (determine how many seats and what buffer seats are)
 
@@ -21,17 +41,6 @@ const movieInfo = async (startSeat, endSeat, url) => {
 	const endSeatNumber = endSeat.replace(/\D/g, '');
 	let amountToBuffer = (endSeatNumber - startSeatNumber) + 1;
 	var row = startSeat.replace(/[^a-zA-Z]+/g, '');
-	/*
-	switch(endSeatNumber-startSeatNumber){
-		case 0: 
-			console.log('One seat to buffer');
-			break;
-		case 1:
-			console.log('1');
-			break;
-		
-	}
-	*/
 
 	console.log('You have selected ' + amountToBuffer + ' seats on row ' + row);
 
@@ -48,35 +57,80 @@ const movieInfo = async (startSeat, endSeat, url) => {
 			timeout: 60000
 		});
 
-		console.log("Status code:", response.status());
+		
 	} catch (error) {
+		console.log("Status code:", response.status());
 		console.log(error.message);
 	}
 
-	const [getTitle] = await page.$x('//*[@id="MovieInfoSection"]/div[1]/div/div/h2');
+	const [getTitle] = await page.$x('//*[@id="ShowtimeTitleLink"]');
 	const title = await page.evaluate(name => name.innerText, getTitle);
-	console.log('Title: ' + title);
+	console.log('Title: ' + title.cyan);
 
-	const [getShowTime] = await page.$x('//*[@id="MovieInfoSection"]/div[2]/h3');
+	const [getShowTime] = await page.$x('/html/body/div[1]/div[2]/div[1]/header/div[2]/div/div/div/p[1]');
 	const time = await page.evaluate(name => name.innerText, getShowTime);
-	console.log('Showime: ' + time);
+	console.log('Showime: ' + time.cyan);
 
-	const [getTheatre] = await page.$x('//*[@id="MovieInfoSection"]/div[1]/div/div/h3');
+	const [getTheatre] = await page.$x('/html/body/div[1]/div[2]/div[1]/header/div[2]/div/div/div/p[2]');
 	const theatre = await page.evaluate(name => name.innerText, getTheatre);
-	console.log('Theatre: ' + theatre);
+	console.log('Theatre: ' + theatre.cyan);
 
-	const [getAddress] = await page.$x('//*[@id="MovieInfoSection"]/div[1]/div/div/p[2]');
-	const address = await page.evaluate(name => name.innerText, getAddress);
-	console.log('Address: ' + address);
+	//const [getAddress] = await page.$x('//*[@id="MovieInfoSection"]/div[1]/div/div/p[2]');
+	//const address = await page.evaluate(name => name.innerText, getAddress);
+	//console.log('Address: ' + address);
 
-	const [getPoster] = await page.$x('//*[@id="MovieInfoSection"]/div[1]/div/img');
+	const [getPoster] = await page.$x('/html/body/div[1]/div[2]/div[1]/header/div[2]/div/div/a/img');
 	const jsHandle = await getPoster.getProperty('src');
-	const plainValue = await jsHandle.jsonValue();
-	console.log("Poster: " + plainValue);
+	const imageURL = await jsHandle.jsonValue();
+	
+	async function gatherImage(url){
+		await Jimp.read(url)
+			.then((image) => {
+				return image
+					.resize(54, 80)
+					.quality(100)
+					.write("moviePoster.png")
+			})
+			.catch((err) => {
+				console.warn("ERRRRROR")
+				console.log(err)
+			});
+	}
+
+	async function displayImage(url){
+		//await downloadImage(imageURL, 'moviePoster.jpg');
+		await gatherImage(url);
+		const convertImages = await gatherImage(url);
+
+		var image = require('fs').readFileSync(__dirname + '/moviePoster.png');
+		console.png(image);
+	}
+
+	await displayImage(imageURL)
+
+	//Clean up browser
+	await browser.close();
+
+	//await new Promise(resolve => setTimeout(resolve, 5000));
+
+	console.log('');
+	console.log('==================================================================================='.magenta);
+	console.log('*****     +     +     + Commencing Target Acquisition +     +     +     +     *****'.cyan);
+	console.log('==================================================================================='.magenta);
+	console.log('');
+	//statusBAR();
+
+	//Loops once a minute
+	FandangoReserveSeats(startSeat, endSeat, link);
+	setInterval(function () {
+		FandangoReserveSeats(startSeat, endSeat, link);
+	}, 60000);
 
 }
 
-const reserveSeats = async (startSeat, endSeat, url) => {
+const FandangoReserveSeats = async (startSeat, endSeat, url) => {
+	console.log("Reserving seats".cyan)
+
 	const browser = await puppeteer.launch({ headless: true });
 	const page = await browser.newPage();
 	await page.setCacheEnabled(false);
@@ -88,19 +142,21 @@ const reserveSeats = async (startSeat, endSeat, url) => {
 			timeout: 60000
 		});
 
-		console.log("Status code:", response.status());
 	} catch (error) {
+		console.warn("Error")
+		console.warn("Status code:", response.status());
 		console.log(error.message);
 	}
 
 
-	const [getShowTime] = await page.$x('//*[@id="MovieInfoSection"]/div[2]/h3');
+	const [getShowTime] = await page.$x('/html/body/div[1]/div[2]/div[1]/header/div[2]/div/div/div/p[1]');
 	const time = await page.evaluate(name => name.innerText, getShowTime);
 
 	//Seat Logic (determine how many seats and what buffer seats are)
 	const startSeatNumber = startSeat.replace(/\D/g, '');
 	const endSeatNumber = endSeat.replace(/\D/g, '');
 	let amountToBuffer = (endSeatNumber - startSeatNumber) + 1;
+	startSeat = startSeat.toUpperCase();
 	var row = startSeat.replace(/[^a-zA-Z]+/g, '');
 	var todaysDate = new Date()
 	var currentYear = todaysDate.getFullYear()
@@ -120,89 +176,6 @@ const reserveSeats = async (startSeat, endSeat, url) => {
 	console.log('');
 
 
-	try {
-		const [ticketButton] = await page.$x('//*[@id="TicketSelectionSection"]/div[2]/ul/li[1]/div[2]/button[2]');
-		if (ticketButton) {
-			await ticketButton.click();
-			await page.keyboard.press('Space');
-
-			const [selected] = await page.$x('//*[@id="TicketSelectionSection"]/div[2]/ul/li[1]/div[2]/div');
-			const selectedNumber = await page.evaluate(name => name.innerText, selected);
-
-			const onlyNumbers = selectedNumber.replace(/\D/g, '');
-			if (onlyNumbers === '2') {
-				console.log('✔️  Ticket selection: Success! ');
-			}
-			if (onlyNumbers === '1') {
-				await page.keyboard.press('Space');
-
-				const [selected2] = await page.$x('//*[@id="TicketSelectionSection"]/div[2]/ul/li[1]/div[2]/div');
-				const selectedNumber2 = await page.evaluate(name => name.innerText, selected);
-				if (onlyNumbers === '2') {
-					console.log('✔️  Ticket selection: Success! (Error 1 tickets remediated)');
-				}
-				else {
-					console.log('Breaking change: ' + onlyNumbers + ' ticket selected...need 2');
-				}
-			}
-			if (onlyNumbers === '0') {
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Space');
-				await page.keyboard.press('Space');
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Tab');
-				await page.keyboard.press('Tab');
-				console.log('✔️  Ticket selection: Success! (Error 0 tickets remediated)');
-			}
-
-			//console.log(selectedNumber);
-		}
-		else {
-			console.log("❌ ❌ ❌ ERROR on Ticket Select: Button not defined");
-		}
-	} catch (error) {
-		console.log("❌ ❌ ❌ ERROR on Ticket Select TRY ❌ ❌ ❌");
-		console.log(error.message);
-	}
-
-
-
-	try {
-		//Click next button after selecting Tickets
-		const [nextButton] = await page.$x("//button[contains(., 'Next')]");
-		if (nextButton) {
-			await nextButton.click();
-			console.log("✔️  Next Page: Success!");
-		}
-		else {
-			console.log("❌ ❌ ❌ ERROR on Next Page Navigation ❌");
-		}
-	} catch (error) {
-		console.log("❌ ❌ ❌ ERROR on Ticket Select TRY ❌ ❌ ❌");
-		console.log(error.message);
-	}
-
-
-	await page.waitForNavigation({
-		waitUntil: 'networkidle0',
-		timeout: 60000,
-	});
-
-
-	await sleep(5000)
-	function sleep(ms) {
-		return new Promise((resolve) => {
-			setTimeout(resolve, ms);
-		});
-	}
 
 	//const [getSeats] = await page.$x('//*[@id="svg-Layer_1"]');
 
@@ -217,7 +190,7 @@ const reserveSeats = async (startSeat, endSeat, url) => {
 			console.log("✔️  Buffer Seat 1 CLICKED: Success!");
 		}
 		else {
-			console.log("❌ ❌ ❌ ERROR on Buffer Seat 1 ❌");
+			console.log("❌ ❌ ❌ ERROR on Buffer Seat 1 ❌ ❌ ❌");
 		}
 		await sleep(1000)
 		function sleep(ms) {
@@ -238,7 +211,7 @@ const reserveSeats = async (startSeat, endSeat, url) => {
 			console.log("✔️  Buffer Seat 2 CLICKED: Success!");
 		}
 		else {
-			console.log("❌ ❌ ❌ ERROR on Buffer Seat 2 ❌");
+			console.log("❌ ❌ ❌ ERROR on Buffer Seat 2 ❌ ❌ ❌");
 		}
 		await sleep(1000)
 		function sleep(ms) {
@@ -266,35 +239,51 @@ const reserveSeats = async (startSeat, endSeat, url) => {
 
 		else {
 			//Buffer seats complete - NEXT button to lock in
-			const [bufferSeatComplete] = await page.$x('//*[@id="NextButton"]');
-			if (bufferSeatComplete) {
-				await bufferSeatComplete.click();
-				console.log(" ✅ Buffer Seat selection COMPLETE! ✅");
+			const [bufferSeatFirstNext] = await page.$x('//*[@id="NextButton"]');
+			if (bufferSeatFirstNext) {
+				await bufferSeatFirstNext.click();
+
+				const [bufferSeatSecondNext] = await page.$x('//*[@id="ticket-selection-overlay-next-btn"]');
+				if (bufferSeatSecondNext) {
+					await bufferSeatSecondNext.click();
+
+					
+					console.log(" ✅ Buffer Seat selection COMPLETE! ✅");
+				}
+				else {
+					console.log("❌ ❌ ❌ ERROR on Buffer Seat First Next ❌ ❌ ❌");
+				}
 			}
 
 			else {
-				console.log("❌ ❌ ❌ ERROR on Buffer Seat Complete ❌");
+				console.log("❌ ❌ ❌ ERROR on Buffer Second Next ❌ ❌ ❌");
 			}
 
-			await page.waitForNavigation({
-				waitUntil: 'networkidle0',
-				timeout: 60000,
+			
+
+			console.log("...");
+			console.log("...");
+
+			await page.waitForSelector('#buynow-continue-btn', {
+				visible: true,
 			});
-
-			console.log("...");
-			console.log("...");
+			
 			//Check for 2 buffer seats selected
-			const [checkout] = await page.$x('//*[@id="SeatSelectionSection"]/div[2]/a');
-			const checkoutLOL = await page.evaluate(name => name.innerText, checkout);
-			console.log(checkoutLOL);
+			
+			const [checkout] = await page.$x('//*[@id="buynow-continue-btn"]');
+			await checkout.click();
+			//const checkoutLOL = await this.page.evaluate(() => document.body.querySelector('h1').textContent);
+
+			const priceLOL = await await page.$x('//*[@id="purchaseTotal"]');
+			console.log("Price: "+priceLOL);
 
 
-			/*
+			
 						await page.screenshot({
 							path: "screenshots/screenshot.png",
 							fullPage: true
 						});
-			*/
+			
 			await browser.close();
 
 		}
@@ -307,18 +296,13 @@ const reserveSeats = async (startSeat, endSeat, url) => {
 }
 
 const prompt = require("prompt-sync")({ sigint: true });
+//const menuSelection = prompt("CinemaSafe.js ");
+
 const link = prompt("Fandango Link: ");
 const startSeat = prompt("START seat: ");
 const endSeat = prompt("END seat: ");
 console.log(`Buffering ${startSeat} and ${endSeat}`);
 
 movieInfo(startSeat, endSeat, link);
-reserveSeats(startSeat, endSeat, link);
-//Loops once a minute
-setInterval(function () {
-	reserveSeats(startSeat, endSeat, link);
-}, 60000);
 
-
-
-
+//FandangoReserveSeats(startSeat, endSeat, link);
