@@ -366,11 +366,47 @@ const prompt = require("prompt-sync")({ sigint: true });
 //const menuSelection = prompt("CinemaSafe.js ");
 
 var showTime
-const link = prompt("Fandango Link: ");
-const startSeat = prompt("START seat: ");
-const endSeat = prompt("END seat: ");
-console.log(`Buffering ${startSeat} and ${endSeat}`);
 
-mainLoop(startSeat, endSeat, link);
+
+// const link = prompt("Fandango Link: ");
+// const linkTest = "https://tickets.fandango.com/mobileexpress/seatselection?row_count=453991560&mid=234520&chainCode=AMC&sdate=2024-07-07+22%3A15&tid=aaqir&route=map-seat-map"
+// const startSeat = prompt("START seat: ");
+// const endSeat = prompt("END seat: ");
+// console.log(`Buffering ${startSeat} and ${endSeat}`);
+
+// mainLoop(startSeat, endSeat, linkTest);
+
+
+const prompts = require('prompts');
+
+(async () => {
+	const response = await prompts({
+		type: 'select',
+		name: 'value',
+		message: 'Mode select:',
+		choices: [
+			{ title: 'Buffer Mode', description: 'Create buffer zone around a group of seats', value: 'Buffer' },
+			//{ title: 'Green', value: '#00ff00', disabled: true },
+			{ title: 'Target Mode', description: 'Target a list of specific seats, may be non-sequential', value: 'Target' }
+		],
+		initial: 1
+	});
+
+	console.log(''); 
+
+	if (response.value.includes("Buffer")) {
+		const link = prompt("Fandango Link: ");
+		const linkTest = "https://tickets.fandango.com/mobileexpress/seatselection?row_count=453991560&mid=234520&chainCode=AMC&sdate=2024-07-07+22%3A15&tid=aaqir&route=map-seat-map"
+		const startSeat = prompt("START seat: ");
+		const endSeat = prompt("END seat: ");
+		console.log(`Buffering ${startSeat} and ${endSeat}`);
+		mainLoop(startSeat, endSeat, linkTest);
+	}
+	
+})();
+
+
+
+
 
 //ReserveBufferSeats(startSeat, endSeat, link);
