@@ -369,7 +369,6 @@ var showTime
 
 
 // const link = prompt("Fandango Link: ");
-// const linkTest = "https://tickets.fandango.com/mobileexpress/seatselection?row_count=453991560&mid=234520&chainCode=AMC&sdate=2024-07-07+22%3A15&tid=aaqir&route=map-seat-map"
 // const startSeat = prompt("START seat: ");
 // const endSeat = prompt("END seat: ");
 // console.log(`Buffering ${startSeat} and ${endSeat}`);
@@ -396,11 +395,12 @@ const prompts = require('prompts');
 
 	if (response.value.includes("Buffer")) {
 		const link = prompt("Fandango Link: ");
-		const linkTest = "https://tickets.fandango.com/mobileexpress/seatselection?row_count=453991560&mid=234520&chainCode=AMC&sdate=2024-07-07+22%3A15&tid=aaqir&route=map-seat-map"
+		const linkTest = ""
 		const startSeat = prompt("START seat: ");
 		const endSeat = prompt("END seat: ");
 		console.log(`Buffering ${startSeat} and ${endSeat}`);
-		mainLoop(startSeat, endSeat, linkTest);
+		mainLoop(startSeat, endSeat, link);
+		//mainLoop(startSeat, endSeat, linkTest);
 	}
 	
 })();
