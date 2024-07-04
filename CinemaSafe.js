@@ -32,7 +32,7 @@ console.log('===================================================================
 // 		figlet.textSync('CINEMA-SAFE', { horizontalLayout: 'full' }).cyan
 // );
 
-const movieInfo = async (startSeat, endSeat, url) => {
+const movieInfo = async (url) => {
 
 	//Web Initialization
 	const browser = await puppeteer.launch({ headless: true });
@@ -302,11 +302,126 @@ const ReserveBufferSeats = async (firstBufferSeat, secondBufferSeat, url) => {
 
 }
 
+const targetSeats = async (seats, url) => {	
+	console.log('');
+	console.log("Reserving seats".cyan)
+
+	//Initialize browser for reserving seats
+	const browser = await puppeteer.launch({ headless: true });
+	const page = await browser.newPage();
+	await page.setCacheEnabled(false);
+	page.setViewport({ width: 1280, height: 926 });
+	await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36');
+	
+	try {
+		const response = await page.goto(url, {
+			waitUntil: "networkidle0",
+			timeout: 60000
+		});
+
+	} catch (error) {
+		console.warn("Error")
+		console.warn("Status code:", response.status());
+		console.log(error.message);
+	}
+
+	for (const target of seats){
+		try {
+			const targetSeat = await page.waitForSelector("#" + target);
+			if (targetSeat) {
+				await targetSeat.click();
+				console.log(`✔️  ${target} CLICKED: Success!`);
+			}
+			else {
+				console.log(`❌ ❌ ❌ ERROR selecting seat ${target} ❌ ❌ ❌`);
+			}
+			await sleep(1000)
+			function sleep(ms) {
+				return new Promise((resolve) => {
+					setTimeout(resolve, ms);
+				});
+			}
+		} catch (error) {
+			console.log(`❌ ❌ ❌ ERROR on seat ${target} TRY ❌ ❌ ❌`);
+			console.log(error.message);
+		}
+	}
+
+	//Check for 2 buffer seats selected
+	try {
+		const checkSeats = await page.waitForSelector("#stickyFooterSelectedCount");
+		const seatValidatiion = await page.evaluate(name => name.innerText, checkSeats);
+		console.log(seatValidatiion.replace());
+
+		if (seatValidatiion === '0 Selected:') {
+			console.log(' ⌛ Seats still reserved - looping to maintain... ⌛');
+			await browser.close();
+			console.log('====================================================================================');
+			console.log('====================================================================================');
+		}
+
+		else {
+			//Buffer seat clicks to complete - Press NEXT button to lock in
+			const bufferSeatFirstNext = await page.waitForSelector("#NextButton");
+			if (bufferSeatFirstNext) {
+				await bufferSeatFirstNext.click();
+
+				const bufferSeatSecondNext = await page.waitForSelector("#ticket-selection-overlay-next-btn");
+				if (bufferSeatSecondNext) {
+					await bufferSeatSecondNext.click();
+					console.log(" ✅ Buffer Seat selection COMPLETE! ✅");
+				}
+				else {
+					console.log("❌ ❌ ❌ ERROR on Buffer Seat Second Next ❌ ❌ ❌");
+				}
+			}
+
+			else {
+				console.log("❌ ❌ ❌ ERROR on Buffer First Next ❌ ❌ ❌");
+			}
+			
+			console.log("");
+
+			await page.waitForSelector('#buynow-continue-btn', {
+				visible: true,
+			});
+
+			const popupNextButton = await page.waitForSelector('#buynow-continue-btn', {visible: true})
+
+			if(popupNextButton){
+				await popupNextButton.click()
+			}
+
+			else {
+				console.log("❌ ❌ ❌ ERROR on Popup Next ❌ ❌ ❌");
+			}
+
+			const priceLOL = await page.waitForSelector("#purchaseTotal");
+			const dollarsSaved = await page.evaluate(price => price.innerText, priceLOL);
+			console.log("Price: " + dollarsSaved)
+
+			// await page.screenshot({
+			// 	path: "screenshots/screenshot.png",
+			// 	fullPage: true
+			// });
+
+			await browser.close();
+		}
+		
+
+	} catch (error) {
+		console.log("❌ ❌ ❌ ERROR on final step TRY ❌ ❌ ❌");
+		console.log(error.message);
+		await browser.close();
+	}
+
+}
+
 const mainLoop = async (startSeat, endSeat, url) => {
 
 	var todaysDate = new Date()
 
-	await movieInfo(startSeat, endSeat, url);
+	await movieInfo(url);
 
 	if (!!showTime) {
 		if (todaysDate.getTime() < showTime.getTime())
@@ -362,18 +477,60 @@ const mainLoop = async (startSeat, endSeat, url) => {
 
 }
 
+const targetMainLoop = async (seats, url) => {
+
+	var todaysDate = new Date()
+
+	await movieInfo(url);
+
+	if (!!showTime) {
+		if (todaysDate.getTime() < showTime.getTime())
+			console.log("Show has not happened yet: Initiating loop".magenta);
+		else
+			console.log("Show has happened at " + todaysDate);
+	}
+
+	//Loops every 30 seconds until showtime passes
+	while (todaysDate.getTime() < showTime.getTime()) {
+		var loopTime = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')
+		console.log('');
+		console.log("Loop began at: ".cyan + loopTime)
+		//Check that seats are availiable
+		var seatCheck = await checkSeat(url, seats[0])
+
+		if (seatCheck.includes("Open") ) {
+			await targetSeats(seats, url)
+			console.log("Aquired both seats, Looping to maintain reservation".magenta)
+		}
+
+		else if (seatCheck.includes("Unavailable") ) { //
+			console.log(seats[0].magenta + ": ".magenta  + seats[0].magenta  + " - ".magenta)
+			console.log("Looping to acquire seats... Unsuccessful".red)
+		}
+
+		else {
+			console.log("Error checking for seat availiability".red)
+			console.log("Looping from an ERROR STATE to check seat availiability".red)
+		}
+		console.log('');
+		console.log('-------------------------------------------------'.zebra);
+		await new Promise(resolve => setTimeout(resolve, 45000));
+	}
+
+	console.time("dbsave");
+	console.log("Showtime occured at ")
+	console.timeEnd("dbsave");
+
+	console.log("Showtime occured at " + showtime)
+
+
+}
+
 const prompt = require("prompt-sync")({ sigint: true });
 //const menuSelection = prompt("CinemaSafe.js ");
 
 var showTime
 
-
-// const link = prompt("Fandango Link: ");
-// const startSeat = prompt("START seat: ");
-// const endSeat = prompt("END seat: ");
-// console.log(`Buffering ${startSeat} and ${endSeat}`);
-
-// mainLoop(startSeat, endSeat, linkTest);
 
 
 const prompts = require('prompts');
@@ -395,12 +552,26 @@ const prompts = require('prompts');
 
 	if (response.value.includes("Buffer")) {
 		const link = prompt("Fandango Link: ");
-		const linkTest = ""
 		const startSeat = prompt("START seat: ");
 		const endSeat = prompt("END seat: ");
 		console.log(`Buffering ${startSeat} and ${endSeat}`);
 		mainLoop(startSeat, endSeat, link);
-		//mainLoop(startSeat, endSeat, linkTest);
+	}
+
+	if (response.value.includes("Target")) {
+		const link = prompt("Fandango Link: ");
+		const seats = await prompts({
+			type: 'list',
+			name: 'targets',
+			message: 'Enter up to 20 targets (comma seperated): ',
+			initial: '',
+			separator: ','
+		});
+
+		const uppercaseSeats= seats.targets.map(targets => targets.toUpperCase());
+		targetMainLoop(uppercaseSeats, link);
+
+		
 	}
 	
 })();
