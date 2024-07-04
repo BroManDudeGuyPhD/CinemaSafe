@@ -34,6 +34,12 @@ console.log('===================================================================
 
 const movieInfo = async (url) => {
 
+	console.log('');
+	console.log('==================================================================================='.cyan);
+	console.log('*****     +     +     + Commencing Target Acquisition +     +     +     +     *****'.cyan.bgMagenta);
+	console.log('==================================================================================='.cyan);
+	console.log('');
+
 	//Web Initialization
 	const browser = await puppeteer.launch({ headless: true });
 	const page = await browser.newPage();
@@ -79,8 +85,8 @@ const movieInfo = async (url) => {
 	// console.log('Address: ' + address);
 
 	const getPoster = await page.waitForSelector('#HeaderTitleWrapper > div > div > a > img');
-	const jsHandle = await getPoster.getProperty('src');
-	const imageURL = await jsHandle.jsonValue();
+	const imgSRC = await getPoster.getProperty('src');
+	const imageURL = await imgSRC.jsonValue();
 	
 	async function gatherImage(url){
 		await Jimp.read(url)
@@ -104,19 +110,15 @@ const movieInfo = async (url) => {
 		console.png(image);
 	}
 
-	await displayImage(imageURL)
+	try{
+		displayImage(imageURL)
+	}
+	catch{console.log("Unable to display image")}
 
 	//Clean up browser
 	await browser.close();
 
 	//await new Promise(resolve => setTimeout(resolve, 5000));
-
-	console.log('');
-	console.log('==================================================================================='.cyan);
-	console.log('*****     +     +     + Commencing Target Acquisition +     +     +     +     *****'.cyan.bgMagenta);
-	console.log('==================================================================================='.cyan);
-	console.log('');
-	//statusBAR();
 
 }
 
@@ -417,7 +419,7 @@ const targetSeats = async (seats, url) => {
 
 }
 
-const mainLoop = async (startSeat, endSeat, url) => {
+const bufferLoop = async (startSeat, endSeat, url) => {
 
 	var todaysDate = new Date()
 
@@ -456,7 +458,7 @@ const mainLoop = async (startSeat, endSeat, url) => {
 
 		else if (seatCheck1.includes("Unavailable") || seatCheck2.includes("Unavailable")) { //
 			console.log(firstBufferSeat.magenta + ": ".magenta  + seatCheck1.magenta  + " - ".magenta + secondBufferSeat.magenta  + ": ".magenta  + seatCheck2.magenta )
-			console.log("Looping to acquire seats... Unsuccessful".red)
+			console.log("Looping to aquire seats... Unsuccessful".red)
 		}
 
 		else {
@@ -477,7 +479,7 @@ const mainLoop = async (startSeat, endSeat, url) => {
 
 }
 
-const targetMainLoop = async (seats, url) => {
+const targetLoop = async (seats, url) => {
 
 	var todaysDate = new Date()
 
@@ -504,7 +506,7 @@ const targetMainLoop = async (seats, url) => {
 		}
 
 		else if (seatCheck.includes("Unavailable") ) { //
-			console.log(seats[0].magenta + ": ".magenta  + seats[0].magenta  + " - ".magenta)
+			console.log(seats[0].magenta + ": ".magenta  + seatCheck.magenta)
 			console.log("Looping to acquire seats... Unsuccessful".red)
 		}
 
@@ -543,7 +545,7 @@ const prompts = require('prompts');
 		choices: [
 			{ title: 'Buffer Mode', description: 'Create buffer zone around a group of seats', value: 'Buffer' },
 			//{ title: 'Green', value: '#00ff00', disabled: true },
-			{ title: 'Target Mode', description: 'Target a list of specific seats, may be non-sequential', value: 'Target' }
+			{ title: 'Target Mode', description: 'Target a list up to 20 seats, may be non-sequential', value: 'Target' }
 		],
 		initial: 1
 	});
@@ -551,15 +553,31 @@ const prompts = require('prompts');
 	console.log(''); 
 
 	if (response.value.includes("Buffer")) {
-		const link = prompt("Fandango Link: ");
+		const link = await prompts({
+			type: 'text',
+			name: 'value',
+			message: `Fandango Link: (link from seat selection page)`,
+			validate: value => !value.includes("https://tickets.fandango.com/") ? `Link should start with: https://tickets.fandango.com/` : true
+		});
+
+		console.log(''); 
 		const startSeat = prompt("START seat: ");
 		const endSeat = prompt("END seat: ");
-		console.log(`Buffering ${startSeat} and ${endSeat}`);
-		mainLoop(startSeat, endSeat, link);
-	}
+		console.log(''); 
+		bufferLoop(startSeat, endSeat, link.value);
+	}	console.log('');
+
 
 	if (response.value.includes("Target")) {
-		const link = prompt("Fandango Link: ");
+		//const link = prompt("Fandango Link: ");
+		const link = await prompts({
+			type: 'text',
+			name: 'value',
+			message: `Fandango Link: (link from seat selection page)`.cyan,
+			validate: value => !value.includes("https://tickets.fandango.com/") ? `Link should start with: https://tickets.fandango.com/` : true
+			
+		});
+		console.log(''); 
 		const seats = await prompts({
 			type: 'list',
 			name: 'targets',
@@ -568,8 +586,9 @@ const prompts = require('prompts');
 			separator: ','
 		});
 
+		console.log(''); 
 		const uppercaseSeats= seats.targets.map(targets => targets.toUpperCase());
-		targetMainLoop(uppercaseSeats, link);
+		targetLoop(uppercaseSeats, link.value);
 
 		
 	}
@@ -581,3 +600,4 @@ const prompts = require('prompts');
 
 
 //ReserveBufferSeats(startSeat, endSeat, link);
+// a1,b4,c5,d6,e7,a5,b6,d4,e3
