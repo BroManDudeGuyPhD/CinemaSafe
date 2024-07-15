@@ -11,13 +11,15 @@ colors = require('colors');
 const clear = require('clear');
 const figlet = require('figlet');
 
+
+//Initialize plugins
 require('console-png').attachTo(console);
 colors.enable()
-
-
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
+const prompt = require("prompt-sync")({ sigint: true });
 
+// Vanity screen
 console.clear(); 
 console.log('==================================================================================='.cyan);
 console.log(' ██████╗██╗███╗   ██╗███████╗███╗   ███╗ █████╗ ███████╗ █████╗ ███████╗███████╗'.magenta);
@@ -327,15 +329,15 @@ const targetSeats = async (seats, url) => {
 		console.log(error.message);
 	}
 
-	for (const target of seats){
+	for (const seat of seats){
 		try {
-			const targetSeat = await page.waitForSelector("#" + target);
+			const targetSeat = await page.waitForSelector("#" + seat);
 			if (targetSeat) {
 				await targetSeat.click();
-				console.log(`✔️  ${target} CLICKED: Success!`);
+				console.log(`✔️  ${seat} CLICKED: Success!`);
 			}
 			else {
-				console.log(`❌ ❌ ❌ ERROR selecting seat ${target} ❌ ❌ ❌`);
+				console.log(`❌ ❌ ❌ ERROR selecting seat ${seat} ❌ ❌ ❌`);
 			}
 			await sleep(1000)
 			function sleep(ms) {
@@ -344,7 +346,7 @@ const targetSeats = async (seats, url) => {
 				});
 			}
 		} catch (error) {
-			console.log(`❌ ❌ ❌ ERROR on seat ${target} TRY ❌ ❌ ❌`);
+			console.log(`❌ ❌ ❌ ERROR on seat ${seat} TRY ❌ ❌ ❌`);
 			console.log(error.message);
 		}
 	}
@@ -371,15 +373,15 @@ const targetSeats = async (seats, url) => {
 				const bufferSeatSecondNext = await page.waitForSelector("#ticket-selection-overlay-next-btn");
 				if (bufferSeatSecondNext) {
 					await bufferSeatSecondNext.click();
-					console.log(" ✅ Buffer Seat selection COMPLETE! ✅");
+					console.log(" ✅ Seat Targetting selection COMPLETE! ✅");
 				}
 				else {
-					console.log("❌ ❌ ❌ ERROR on Buffer Seat Second Next ❌ ❌ ❌");
+					console.log("❌ ❌ ❌ ERROR on Seat Targetting Second Next ❌ ❌ ❌");
 				}
 			}
 
 			else {
-				console.log("❌ ❌ ❌ ERROR on Buffer First Next ❌ ❌ ❌");
+				console.log("❌ ❌ ❌ ERROR on Seat Targetting First Next ❌ ❌ ❌");
 			}
 			
 			console.log("");
@@ -412,7 +414,7 @@ const targetSeats = async (seats, url) => {
 		
 
 	} catch (error) {
-		console.log("❌ ❌ ❌ ERROR on final step TRY ❌ ❌ ❌");
+		console.log("❌ ❌ ❌ ERROR on final Seat Targetting TRY ❌ ❌ ❌");
 		console.log(error.message);
 		await browser.close();
 	}
@@ -528,7 +530,6 @@ const targetLoop = async (seats, url) => {
 
 }
 
-const prompt = require("prompt-sync")({ sigint: true });
 //const menuSelection = prompt("CinemaSafe.js ");
 
 var showTime
