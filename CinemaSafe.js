@@ -538,63 +538,106 @@ var showTime
 
 const prompts = require('prompts');
 
-(async () => {
-	const response = await prompts({
-		type: 'select',
-		name: 'value',
-		message: 'Mode select:',
-		choices: [
-			{ title: 'Buffer Mode', description: 'Create buffer zone around a group of seats', value: 'Buffer' },
-			//{ title: 'Green', value: '#00ff00', disabled: true },
-			{ title: 'Target Mode', description: 'Target a list up to 20 seats, may be non-sequential', value: 'Target' }
-		],
-		initial: 1
-	});
+// Direct call support: node CinemaSafe.js Buffer <url> <startSeat> <endSeat>
+// or: node CinemaSafe.js Target <url> <seat1,seat2,...>
+function parseArgs(argv) {
+    const args = {};
+    for (let i = 2; i < argv.length; i++) {
+        if (argv[i].startsWith('-')) {
+            const key = argv[i].replace(/^-+/, '').toLowerCase();
+            let value = true;
+            if (i + 1 < argv.length && !argv[i + 1].startsWith('-')) {
+                value = argv[i + 1];
+                i++;
+            }
+            args[key] = value;
+        }
+    }
+    return args;
+}
 
-	console.log(''); 
+const namedArgs = parseArgs(process.argv);
 
-	if (response.value.includes("Buffer")) {
-		const link = await prompts({
-			type: 'text',
-			name: 'value',
-			message: `Fandango Link: (link from seat selection page)`,
-			validate: value => !value.includes("https://tickets.fandango.com/") ? `Link should start with: https://tickets.fandango.com/` : true
-		});
+if (require.main === module && (process.argv.length > 2 || Object.keys(namedArgs).length > 0)) {
+    // Named argument support
+    if (namedArgs.mode === 'Buffer' && namedArgs.url && namedArgs.startseat && namedArgs.endseat) {
+        bufferLoop(namedArgs.startseat, namedArgs.endseat, namedArgs.url);
+    } else if (namedArgs.mode === 'Target' && namedArgs.url && namedArgs.seats) {
+        const seats = namedArgs.seats.split(',').map(s => s.trim().toUpperCase());
+        targetLoop(seats, namedArgs.url);
+    }
+    // Fallback to positional argument support for backward compatibility
+    else if (process.argv[2] === "Buffer" && process.argv.length >= 6) {
+        const url = process.argv[3];
+        const startSeat = process.argv[4];
+        const endSeat = process.argv[5];
+        bufferLoop(startSeat, endSeat, url);
+    } else if (process.argv[2] === "Target" && process.argv.length >= 5) {
+        const url = process.argv[3];
+        const seats = process.argv[4].split(',').map(s => s.trim().toUpperCase());
+        targetLoop(seats, url);
+    } else {
+        console.log("Usage:");
+        console.log("  node CinemaSafe.js Buffer <url> <startSeat> <endSeat>");
+        console.log("  node CinemaSafe.js Target <url> <seat1,seat2,...>");
+        console.log("  node CinemaSafe.js -mode Buffer -url <url> -startSeat <startSeat> -endSeat <endSeat>");
+        console.log("  node CinemaSafe.js -mode Target -url <url> -seats <seat1,seat2,...>");
+        process.exit(1);
+    }
+} else {
+    // ...existing menu system...
+    (async () => {
+        const response = await prompts({
+            type: 'select',
+            name: 'value',
+            message: 'Mode select:',
+            choices: [
+                { title: 'Buffer Mode', description: 'Create buffer zone around a group of seats', value: 'Buffer' },
+                //{ title: 'Green', value: '#00ff00', disabled: true },
+                { title: 'Target Mode', description: 'Target a list up to 20 seats, may be non-sequential', value: 'Target' }
+            ],
+            initial: 1
+        });
 
-		console.log(''); 
-		const startSeat = prompt("START seat: ");
-		const endSeat = prompt("END seat: ");
-		console.log(''); 
-		bufferLoop(startSeat, endSeat, link.value);
-	}	console.log('');
+        console.log(''); 
 
+        if (response.value.includes("Buffer")) {
+            const link = await prompts({
+                type: 'text',
+                name: 'value',
+                message: `Fandango Link: (link from seat selection page)`,
+                validate: value => !value.includes("https://tickets.fandango.com/") ? `Link should start with: https://tickets.fandango.com/` : true
+            });
 
-	if (response.value.includes("Target")) {
-		//const link = prompt("Fandango Link: ");
-		const link = await prompts({
-			type: 'text',
-			name: 'value',
-			message: `Fandango Link: (link from seat selection page)`.cyan,
-			validate: value => !value.includes("https://tickets.fandango.com/") ? `Link should start with: https://tickets.fandango.com/` : true
-			
-		});
-		console.log(''); 
-		const seats = await prompts({
-			type: 'list',
-			name: 'targets',
-			message: 'Enter up to 20 targets (comma seperated): ',
-			initial: '',
-			separator: ','
-		});
+            console.log(''); 
+            const startSeat = prompt("START seat: ");
+            const endSeat = prompt("END seat: ");
+            console.log(''); 
+            bufferLoop(startSeat, endSeat, link.value);
+        }	console.log('');
 
-		console.log(''); 
-		const uppercaseSeats= seats.targets.map(targets => targets.toUpperCase());
-		targetLoop(uppercaseSeats, link.value);
+        if (response.value.includes("Target")) {
+            const link = await prompts({
+                type: 'text',
+                name: 'value',
+                message: `Fandango Link: (link from seat selection page)`.cyan,
+                validate: value => !value.includes("https://tickets.fandango.com/") ? `Link should start with: https://tickets.fandango.com/` : true
+            });
+            console.log(''); 
+            const seats = await prompts({
+                type: 'list',
+                name: 'targets',
+                message: 'Enter up to 20 targets (comma seperated): ',
+                initial: '',
+                separator: ','
+            });
 
-		
-	}
-	
-})();
+            console.log(''); 
+            const uppercaseSeats= seats.targets.map(targets => targets.toUpperCase());
+            targetLoop(uppercaseSeats, link.value);
+        }
+    })();
+}
 
 
 
