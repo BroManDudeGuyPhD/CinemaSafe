@@ -53,7 +53,7 @@ const movieInfo = async (url) => {
 
 	try {
 		var response = await page.goto(url, {
-			waitUntil: "networkidle0",
+			waitUntil: "networkidle2",
 			timeout: 60000
 		});
 
@@ -185,7 +185,7 @@ async function checkSeat(url, seatToCheck) {
 
 	try {
 		var response = await page.goto(url, {
-			waitUntil: "load",
+			waitUntil: "networkidle2",
 			timeout: 60000
 		});
 
@@ -234,7 +234,7 @@ const ReserveBufferSeats = async (firstBufferSeat, secondBufferSeat, url) => {
 	
 	try {
 		const response = await page.goto(url, {
-			waitUntil: "networkidle0",
+			waitUntil: "networkidle2",
 			timeout: 60000
 		});
 
@@ -374,7 +374,7 @@ const targetSeats = async (seats, url) => {
 	
 	try {
 		const response = await page.goto(url, {
-			waitUntil: "networkidle0",
+			waitUntil: "networkidle2",
 			timeout: 60000
 		});
 
