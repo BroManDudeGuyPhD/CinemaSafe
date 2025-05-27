@@ -4,7 +4,7 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
-      text:
+      url:
         description: Fandango URL
         type: string
         required: true
@@ -52,8 +52,8 @@ jobs:
 
       - name: Run CinemaSafe script
         run: |
-          echo "Fandango URL: ${{ inputs.text }}"
+          echo "Fandango URL: ${{ inputs.url }}"
           echo "Starting Seat: ${{ inputs.startSeat }}"
           echo "Ending Seat: ${{ inputs.endSeat }}"
-          node CinemaSafe.js "-url ${{ inputs.url }}" " -startSeat ${{ inputs.startSeat }}" "-endSeat ${{ inputs.endSeat }}"
+          node CinemaSafe.js -mode Buffer -url "${{ inputs.url }}" -startSeat "${{ inputs.startSeat }}" -endSeat "${{ inputs.endSeat }}"
 
