@@ -105,17 +105,31 @@ const movieInfo = async (url) => {
 	}
 
 	async function displayImage(url){
-		//await downloadImage(imageURL, 'moviePoster.jpg');
-		await gatherImage(url);
-
-		var image = require('fs').readFileSync(__dirname + '/moviePoster.png');
-		console.png(image);
+		try {
+			//await downloadImage(imageURL, 'moviePoster.jpg');
+			await gatherImage(url);
+	
+			// Check if file exists and has content before trying to display it
+			const fs = require('fs');
+			if (fs.existsSync(__dirname + '/moviePoster.png') && 
+				fs.statSync(__dirname + '/moviePoster.png').size > 0) {
+				
+				var image = fs.readFileSync(__dirname + '/moviePoster.png');
+				console.png(image);
+			} else {
+				console.log("Image file not created properly - skipping display".yellow);
+			}
+		} catch (error) {
+			console.log("Unable to display image: " + error.message);
+		}
 	}
 
-	try{
+	try {
 		displayImage(imageURL)
 	}
-	catch{console.log("Unable to display image")}
+	catch (error) {
+		console.log("Unable to display image - continuing without poster".yellow);
+	}
 
 	//Clean up browser
 	await browser.close();
