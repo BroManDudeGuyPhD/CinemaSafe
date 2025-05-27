@@ -21,7 +21,7 @@ on:
   #Allows this workflow to be called programatically as a downstream tasjk in another workflow
   workflow_call:
     inputs:
-      text:
+      url:
         description: Fandango URL
         type: string
         required: true
@@ -55,5 +55,5 @@ jobs:
           echo "Fandango URL: ${{ inputs.text }}"
           echo "Starting Seat: ${{ inputs.startSeat }}"
           echo "Ending Seat: ${{ inputs.endSeat }}"
-          node CinemaSafe.js "${{ inputs.text }}" "${{ inputs.startSeat }}" "${{ inputs.endSeat }}"
+          node CinemaSafe.js "-url ${{ inputs.url }}" " -startSeat ${{ inputs.startSeat }}" "-endSeat ${{ inputs.endSeat }}"
 
