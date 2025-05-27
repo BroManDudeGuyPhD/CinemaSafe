@@ -43,7 +43,10 @@ const movieInfo = async (url) => {
 	console.log('');
 
 	//Web Initialization
-	const browser = await puppeteer.launch({ headless: true });
+	const browser = await puppeteer.launch({ 
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
 	const page = await browser.newPage();
 	await page.setCacheEnabled(false);
 	page.setViewport({ width: 1280, height: 926 });
@@ -171,7 +174,10 @@ async function checkSeat(url, seatToCheck) {
 	console.log("Checking ".cyan + seatToCheck.cyan);
 
 	var status = "Error"
-	const browser = await puppeteer.launch({ headless: true });
+	const browser = await puppeteer.launch({ 
+        headless: true, 
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
 	const page = await browser.newPage();
 	await page.setCacheEnabled(false);
 	page.setViewport({ width: 1280, height: 926 });
@@ -217,7 +223,10 @@ const ReserveBufferSeats = async (firstBufferSeat, secondBufferSeat, url) => {
 	console.log("Reserving seats".cyan)
 
 	//Initialize browser for reserving seats
-	const browser = await puppeteer.launch({ headless: true });
+	const browser = await puppeteer.launch({ 
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
 	const page = await browser.newPage();
 	await page.setCacheEnabled(false);
 	page.setViewport({ width: 1280, height: 926 });
@@ -354,7 +363,10 @@ const targetSeats = async (seats, url) => {
 	console.log("Reserving seats".cyan)
 
 	//Initialize browser for reserving seats
-	const browser = await puppeteer.launch({ headless: true });
+	const browser = await puppeteer.launch({ 
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
 	const page = await browser.newPage();
 	await page.setCacheEnabled(false);
 	page.setViewport({ width: 1280, height: 926 });
