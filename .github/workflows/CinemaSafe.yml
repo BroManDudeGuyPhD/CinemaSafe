@@ -55,5 +55,5 @@ jobs:
           echo "Fandango URL: ${{ inputs.url }}"
           echo "Starting Seat: ${{ inputs.startSeat }}"
           echo "Ending Seat: ${{ inputs.endSeat }}"
-          node CinemaSafe.js -mode Buffer -url "${{ inputs.url }}" -startSeat "${{ inputs.startSeat }}" -endSeat "${{ inputs.endSeat }}" --no-sandbox
+          node CinemaSafe.js -mode Buffer -url "${{ inputs.url }}" -startSeat "${{ inputs.startSeat }}" -endSeat "${{ inputs.endSeat }}"
 
