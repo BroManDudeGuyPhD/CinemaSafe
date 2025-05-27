@@ -56,27 +56,55 @@ const movieInfo = async (url) => {
 
 		
 	} catch (error) {
-		console.log("Status code:", response.status());
-		console.log(error.message);
+		console.log("Error navigating to URL:".red);
+        console.log(error.message);
+        await browser.close();
+        return false;
 	}
 
-	const getTitle = await page.waitForSelector('#ShowtimeTitleLink');
-	const title = await page.evaluate(name => name.innerText, getTitle);
+	// Get title with error handling
+    try {
+        const getTitle = await page.waitForSelector('#ShowtimeTitleLink', { timeout: 45000 });
+        const title = await page.evaluate(name => name.innerText, getTitle);
+        console.log('Title: ' + title.cyan);
+    } catch (error) {
+        console.log("⚠️ Could not find movie title - continuing".yellow);
+    }
 
-	console.log('Title: ' + title.cyan);
+    // Get showtime with error handling and alternative selectors
+    try {
+        // Try the primary selector first
+        let getShowTime;
+        try {
+            getShowTime = await page.waitForSelector('#HeaderTitleWrapper > div > div > div > p.showtime-info__date.dark__section', { timeout: 45000 });
+        } catch (e) {
+            console.log("Primary showtime selector failed, trying alternatives...".yellow);
+            // Try alternative selectors
+            getShowTime = await page.waitForSelector('.showtime-info__date, [data-qa=showtime-date], p:contains("Date")', { timeout: 30000 });
+        }
 
-	const getShowTime = await page.waitForSelector('#HeaderTitleWrapper > div > div > div > p.showtime-info__date.dark__section');
-	const time = await page.evaluate(name => name.innerText, getShowTime);
+        if (getShowTime) {
+            const time = await page.evaluate(name => name.innerText, getShowTime);
 
-	if (!!time) {
-		var todaysDate = new Date()
-		var currentYear = todaysDate.getFullYear()
-		let atRemove = time.replace("at", "");
-		var dateTime = atRemove.split(",")
-		var date = dateTime[1].trim() + currentYear;
-		showTime = new Date(date);
-	}
-	console.log('Showime: ' + time.cyan);
+            if (!!time) {
+                var todaysDate = new Date();
+                var currentYear = todaysDate.getFullYear();
+                let atRemove = time.replace("at", "");
+                var dateTime = atRemove.split(",");
+                var date = dateTime[1].trim() + currentYear;
+                showTime = new Date(date);
+                console.log('Showtime: ' + time.cyan);
+            } else {
+                console.log("⚠️ Couldn't parse showtime text".yellow);
+            }
+        }
+    } catch (error) {
+        console.log("⚠️ Failed to find showtime information - using current time + 2 hours".red);
+        // Fallback: set showtime to current time + 2 hours
+        var todaysDate = new Date();
+        showTime = new Date(todaysDate.getTime() + (2 * 60 * 60 * 1000));
+        console.log("Using fallback showtime: " + showTime.toLocaleString().cyan);
+    }
 
 	const getTheatre = await page.waitForSelector('#HeaderTitleWrapper > div > div > div > p.showtime-info__theater.dark__section');
 	const theatre = await page.evaluate(name => name.innerText, getTheatre);
@@ -133,6 +161,7 @@ const movieInfo = async (url) => {
 
 	//Clean up browser
 	await browser.close();
+	return true;
 
 	//await new Promise(resolve => setTimeout(resolve, 5000));
 
