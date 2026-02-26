@@ -1,3 +1,10 @@
+// Suppress punycode deprecation warning from transitive dep (whatwg-url via node-fetch v2)
+const originalEmitWarning = process.emitWarning;
+process.emitWarning = (warning, ...args) => {
+	if (typeof warning === 'string' && warning.includes('punycode')) return;
+	return originalEmitWarning.call(process, warning, ...args);
+};
+
 const puppeteer = require('puppeteer-extra')
 const StealthPlugin = require('puppeteer-extra-plugin-stealth')
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker')
@@ -122,33 +129,28 @@ const movieInfo = async (url) => {
 	const imageURL = await imgSRC.jsonValue();
 	
 	async function gatherImage(url){
-		await Jimp.read(url)
-			.then((image) => {
-				return image
-					.resize(54, 80)
-					.quality(100)
-					.write("moviePoster.png")
-			})
-			.catch((err) => {
-				console.warn("ERRRRROR")
-				console.log(err)
-			});
+		const image = await Jimp.read(url);
+		image.resize(54, 80).quality(100);
+		await image.writeAsync(__dirname + '/moviePoster.png');
 	}
 
 	async function displayImage(url){
 		try {
-			//await downloadImage(imageURL, 'moviePoster.jpg');
 			await gatherImage(url);
 	
-			// Check if file exists and has content before trying to display it
-			const fs = require('fs');
-			if (fs.existsSync(__dirname + '/moviePoster.png') && 
-				fs.statSync(__dirname + '/moviePoster.png').size > 0) {
+			const posterPath = __dirname + '/moviePoster.png';
+			if (fs.existsSync(posterPath) && 
+				fs.statSync(posterPath).size > 0) {
 				
-				var image = fs.readFileSync(__dirname + '/moviePoster.png');
+				var image = fs.readFileSync(posterPath);
 				console.png(image);
 			} else {
 				console.log("Image file not created properly - skipping display".yellow);
+			}
+
+			// Clean up ephemeral poster file
+			if (fs.existsSync(posterPath)) {
+				fs.unlinkSync(posterPath);
 			}
 		} catch (error) {
 			console.log("Unable to display image: " + error.message);
@@ -156,7 +158,7 @@ const movieInfo = async (url) => {
 	}
 
 	try {
-		displayImage(imageURL)
+		await displayImage(imageURL);
 	}
 	catch (error) {
 		console.log("Unable to display image - continuing without poster".yellow);
