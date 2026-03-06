@@ -1,4 +1,5 @@
-# CinemaSafe
+<img width="595" height="139" alt="Screenshot 2026-03-06 111401" src="https://github.com/user-attachments/assets/583a4f1f-8f81-479f-bd16-e8b1a4976180" />
+
 
 I wrote this during Covid, when our local theatre stopped putting spacing between seats. My wife was _very_ sick, and had a compromised immune system for several months, but we wanted to go to some movies  
 So, this was born  
